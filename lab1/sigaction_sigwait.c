@@ -7,7 +7,7 @@
 #include <sys/syscall.h>
 
 sigset_t mask;
-int use_sigaction = 1;  // Прапорець для переключення режимів
+int use_sigaction = 1;  // прапорець
 
 void sig_handler(int sig) {
     printf("Handler: Thread %ld received signal %d (via sigaction)\n",
@@ -15,7 +15,6 @@ void sig_handler(int sig) {
 }
 
 void* thread_sigwait(void* arg) {
-    // Додаємо явне блокування SIGUSR1 для цього потоку
     sigset_t block_mask;
     sigemptyset(&block_mask);
     sigaddset(&block_mask, SIGUSR1);
@@ -39,7 +38,6 @@ void* thread_sigaction(void* arg) {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
 
-    // Виправлено: знімаємо блокування SIGUSR1 для цього потоку у режимі priority=1
     if (use_sigaction) {
         sigset_t unblock_mask;
         sigemptyset(&unblock_mask);
@@ -75,14 +73,12 @@ int main(int argc, char *argv[]) {
     printf("\n=== Mode: %s ===\n",
          use_sigaction ? "sigaction priority" : "sigwait priority");
     
-    // Спочатку створюємо потік sigaction
     if (pthread_create(&t2, NULL, thread_sigaction, NULL) != 0) {
         perror("pthread_create");
         exit(1);
     }
-    sleep(1);  // Даємо час на ініціалізацію
+    sleep(1);
 
-    // Потім створюємо потік sigwait
     if (pthread_create(&t1, NULL, thread_sigwait, NULL) != 0) {
         perror("pthread_create");
         exit(1);
@@ -92,8 +88,8 @@ int main(int argc, char *argv[]) {
     printf("Sending SIGUSR1 to process %d...\n", getpid());
     kill(getpid(), SIGUSR1);
     
-    sleep(1);  // Даємо час на обробку сигналу
-    pthread_cancel(t2);  // Завершуємо нескінченний цикл
+    sleep(1);
+    pthread_cancel(t2);
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     
